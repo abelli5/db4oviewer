@@ -157,11 +157,11 @@ namespace ObjectTran
                 }
                 else
                 {
-                    foreach(var fc in clzList)
+                    foreach(var cf in clzList)
                     {
-                        if (f.GetStoredType().GetName() == fc.GetName())
+                        if (f.GetStoredType().GetName() == cf.GetName())
                         {
-                            ListFields(f.Get(o), fc, ++depth, f.GetName());
+                            ListFields(f.Get(o), cf, ++depth, f.GetName());
                             break;
                         }
                     }
@@ -288,21 +288,40 @@ namespace ObjectTran
         {
             foreach(IStoredField f in c.GetStoredFields())
             {
-                if (f.GetStoredType().IsImmutable())
+                var v = f.Get(o);
+                var f2 = o2.GetType().GetField(f.GetName(), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance);
+
+                if (f2 != null)
                 {
-                    var v = f.Get(o);
-                    var f2 = o2.GetType().GetField(f.GetName(), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance);
-                    if (f2 != null)
+                    if (f.GetStoredType().IsImmutable())
                     {
                         f2.SetValue(o2, v);
                     }
                     else
                     {
-                        worker.ReportProgress(0, string.Format("FAIL to find field [{0}] of class [{1}]", f.GetName(), o2.GetType()));
+                        // create reflectively.
+                        string cfname = f.GetStoredType().GetName();
+                        int pos = cfname.IndexOf(',');
+                        if (pos > 0)
+                        {
+                            cfname = cfname.Substring(0, pos);
+                        }
+                        var o3 = assembly.CreateInstance(cfname);
+
+                        // copy fields.
+                        foreach (var cf in clzList)
+                        {
+                            if (f.GetStoredType().GetName() == cf.GetName())
+                            {
+                                DeepCopy(id, v, cf, o3, assembly);
+                                break;
+                            }
+                        }
                     }
                 }
                 else
                 {
+                    worker.ReportProgress(0, string.Format("FAIL to find field [{0}] of class [{1}]", f.GetName(), o2.GetType()));
                 }
             }
         }
