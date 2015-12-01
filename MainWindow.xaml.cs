@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using System.Text;
+using System.Reflection;
 
 namespace ObjectTran
 {
@@ -21,6 +22,8 @@ namespace ObjectTran
         private IObjectContainer db;
         private string originFile = null;
         private string assemblyFile = null;
+
+        private BackgroundWorker worker;
 
         public MainWindow()
         {
@@ -189,14 +192,14 @@ namespace ObjectTran
             if ((bool) dlg.ShowDialog())
             {
                 tbNewFilePath.Text = dlg.FileName;
-                //ConvertToNew(db, tbNewFilePath.Text);
+                ConvertToNew(db, tbNewFilePath.Text);
                 Msg(string.Format("Started to convert from {0} to {1}...\n", db, tbNewFilePath.Text));
             }
         }
 
         private void ConvertToNew(IObjectContainer db1, string f2)
         {
-            BackgroundWorker worker = new BackgroundWorker();
+            worker = new BackgroundWorker();
             worker.WorkerReportsProgress = true;
             worker.WorkerSupportsCancellation = true;
             worker.ProgressChanged += Worker_ProgressChanged;
@@ -209,30 +212,44 @@ namespace ObjectTran
                 worker.ReportProgress(0, string.Format("{0} classes are listed.", clist.Length));
                 foreach (IStoredClass c in clist)
                 {
-                    if (!c.GetName().StartsWith("Unionless"))
-                    {
-                        continue;
-                    }
-
                     // try to list objects.
                     var ids = c.GetIDs();
-                    worker.ReportProgress(0, string.Format("{0} objects for class {1}.", ids.Length, c.GetName()));
+                    worker.ReportProgress(0, string.Format("{0} objects for class [{1}] are listed.", ids.Length, c.GetName()));
 
                     foreach(var id in ids)
                     {
                         var o = db1.Ext().GetByID(id);
-                        var o2 = PopulateFrom(o, c);
+                        var o2 = PopulateFrom(id, o, c);
+                        worker.ReportProgress(0, string.Format("++{0} - {1} of class [{2}] is converted to {3}.",
+                            id, o, c.GetName(), o2));
+                        if (o2 != null)
+                        {
+                            db2.Store(o2);
+                        }
                     }
                 }
+
+                db2.Commit();
+                db2.Close();
             };
 
             worker.RunWorkerAsync();
         }
 
-        private object PopulateFrom(object o, IStoredClass c)
+        private object PopulateFrom(long id, object o, IStoredClass c)
         {
-            Type t = Type.GetType(c.GetName());
-            return null;
+            Assembly assembly = Assembly.LoadFrom(assemblyFile);
+            try
+            {
+                var o2 = assembly.CreateInstance(c.GetName());
+                return o2;
+            }
+            catch(Exception ex)
+            {
+                worker.ReportProgress(0, string.Format("Fail to convert from {0} - {1} of class [{2}] caused by {3}",
+                    id, o, c.GetName(), ex.Message));
+                return null;
+            }
         }
 
         private void Worker_ProgressChanged(object sender, ProgressChangedEventArgs e)
@@ -255,7 +272,7 @@ namespace ObjectTran
                 assemblyFile = "";
                 foreach (var fn in dlg.FileNames)
                 {
-                    assemblyFile += fn + ";";
+                    assemblyFile = fn;
                 }
                 tbAssemblyFilePath.Text = assemblyFile;
             }
