@@ -291,8 +291,15 @@ namespace ObjectTran
                 if (f.GetStoredType().IsImmutable())
                 {
                     var v = f.Get(o);
-                    var f2 = o2.GetType().GetField(f.GetName());
-                    f2.SetValue(o2, v);
+                    var f2 = o2.GetType().GetField(f.GetName(), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance);
+                    if (f2 != null)
+                    {
+                        f2.SetValue(o2, v);
+                    }
+                    else
+                    {
+                        worker.ReportProgress(0, string.Format("FAIL to find field [{0}] of class [{1}]", f.GetName(), o2.GetType()));
+                    }
                 }
                 else
                 {
