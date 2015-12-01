@@ -8,6 +8,7 @@ using Microsoft.Win32;
 using Newtonsoft.Json;
 using System.Text;
 using System.Reflection;
+using System.Collections;
 
 namespace ObjectTran
 {
@@ -37,7 +38,7 @@ namespace ObjectTran
             dlg.DefaultExt = ".yap";
             dlg.Filter = "db4o file (*.yap)|*.yap";
             dlg.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            if ((bool) dlg.ShowDialog())
+            if ((bool)dlg.ShowDialog())
             {
                 if (db != null)
                 {
@@ -109,7 +110,7 @@ namespace ObjectTran
             var c = clzList[comboType.SelectedIndex];
 
             Msg(string.Format("\n{0}=>\n", comboIds.SelectedValue));
-            if ((bool) rbOutputFormat.IsChecked)
+            if ((bool)rbOutputFormat.IsChecked)
             {
                 Msg(JsonConvert.SerializeObject(o, Formatting.Indented));
             }
@@ -140,31 +141,61 @@ namespace ObjectTran
 
             pad += "\t";
 
-            foreach (var f in c.GetStoredFields())
+            // if collection then parse each element.
+            CollectionBase cs = o as CollectionBase;
+            if (cs != null)
             {
-                if (f.GetStoredType().IsImmutable())
+                IStoredClass cf1 = null;
+                foreach (var o2 in cs)
                 {
-                    object v = null;
-                    try
+                    if (cf1 == null)
                     {
-                        v = f.Get(o);
-                    }
-                    catch(Exception ex)
-                    {
-                        // nothing.
-                    }
-                    Msg(string.Format("{0}{1} of type[{2}] = {3}.\n", pad, f.GetName(), f.GetStoredType(), v));
-                }
-                else
-                {
-                    foreach(var cf in clzList)
-                    {
-                        if (f.GetStoredType().GetName() == cf.GetName())
+                        foreach (var cf in clzList)
                         {
-                            ListFields(f.Get(o), cf, ++depth, f.GetName());
-                            break;
+                            if (cf.GetName() == o2.GetType().Name)
+                            {
+                                cf1 = cf;
+                                break;
+                            }
                         }
                     }
+
+                    ListFields(o2, cf1, ++depth, fname + "[]");
+                }
+
+                return;
+            }
+
+            // parse each field if not collection.
+            foreach (var f in c.GetStoredFields())
+            {
+                object v = null;
+                try
+                {
+                    v = f.Get(o);
+
+                    if (f.GetStoredType().IsImmutable())
+                    {
+                        Msg(string.Format("{0}{1} of type[{2}] = {3}.\n", pad, f.GetName(), f.GetStoredType(), v));
+                    }
+                    else
+                    {
+                        IStoredClass cf1 = null;
+                        foreach (var cf in clzList)
+                        {
+                            if (f.GetStoredType().GetName() == cf.GetName())
+                            {
+                                cf1 = cf;
+                                break;
+                            }
+                        }
+                        ListFields(v, cf1, ++depth, f.GetName());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Msg(string.Format("Fail to load field [{0}] of object {1} of class [{2}] caused by {3}.",
+                        f.GetName(), o, c.GetName(), ex.Message));
                 }
             }
         }
@@ -194,7 +225,7 @@ namespace ObjectTran
             dlg.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory;
             dlg.Filter = "db4o files (*.yap)|*.yap";
             dlg.FileName = "db4o-" + DateTime.Now.Ticks + ".yap";
-            if ((bool) dlg.ShowDialog())
+            if ((bool)dlg.ShowDialog())
             {
                 tbNewFilePath.Text = dlg.FileName;
                 ConvertToNew(db, tbNewFilePath.Text);
@@ -218,7 +249,7 @@ namespace ObjectTran
 
                 Assembly assembly = Assembly.LoadFile(assemblyFile);
                 worker.ReportProgress(0, string.Format("Assembly [{0}] is loaded.", assemblyFile));
-                foreach(Type t in assembly.GetTypes())
+                foreach (Type t in assembly.GetTypes())
                 {
                     worker.ReportProgress(0, string.Format("++Type [{0}] is loaded.", t));
                 }
@@ -229,7 +260,7 @@ namespace ObjectTran
                     var ids = c.GetIDs();
                     worker.ReportProgress(0, string.Format("{0} objects for class [{1}] are listed.", ids.Length, c.GetName()));
 
-                    foreach(var id in ids)
+                    foreach (var id in ids)
                     {
                         var o = db1.Ext().GetByID(id);
                         var o2 = PopulateFrom(id, o, c, assembly);
@@ -286,11 +317,54 @@ namespace ObjectTran
         /// <param name="assembly"></param>
         private void DeepCopy(long id, object o, IStoredClass c, object o2, Assembly assembly)
         {
-            foreach(IStoredField f in c.GetStoredFields())
+            IList cs = o as IList;
+
+            if (cs != null)
+            {
+                IList cs2 = o2 as IList;
+
+                // add objects from v to v2.
+                IStoredClass cc1 = null;
+                foreach (var o3 in cs)
+                {
+                    if (cc1 == null)
+                    {
+                        foreach (var cc in clzList)
+                        {
+                            if (cc.GetName() == o3.GetType().Name)
+                            {
+                                cc1 = cc;
+                                break;
+                            }
+                        }
+                    }
+
+                    // create o4 in new.
+                    var o4 = assembly.CreateInstance(cc1.GetName());
+                    DeepCopy(id, o3, cc1, o4, assembly);
+
+                    // add o4 to collection.
+                    cs2.Add(o4);
+                }
+
+                return;
+            }
+
+            // copy fields.
+            foreach (IStoredField f in c.GetStoredFields())
             {
                 var v = f.Get(o);
                 var f2 = o2.GetType().GetField(f.GetName(), BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance);
 
+                // parse name.
+                string cfname = f.GetStoredType().GetName();
+                int pos = cfname.IndexOf(',');
+                if (pos > 0)
+                {
+                    cfname = cfname.Substring(0, pos);
+                }
+
+                // set value if field found.
                 if (f2 != null)
                 {
                     if (f.GetStoredType().IsImmutable())
@@ -300,20 +374,15 @@ namespace ObjectTran
                     else
                     {
                         // create reflectively.
-                        string cfname = f.GetStoredType().GetName();
-                        int pos = cfname.IndexOf(',');
-                        if (pos > 0)
-                        {
-                            cfname = cfname.Substring(0, pos);
-                        }
-                        var o3 = assembly.CreateInstance(cfname);
+                        var v2 = assembly.CreateInstance(cfname);
+                        f2.SetValue(o2, v2);
 
-                        // copy fields.
+                        // copy field of certain stored class.
                         foreach (var cf in clzList)
                         {
                             if (f.GetStoredType().GetName() == cf.GetName())
                             {
-                                DeepCopy(id, v, cf, o3, assembly);
+                                DeepCopy(id, v, cf, v2, assembly);
                                 break;
                             }
                         }
@@ -341,7 +410,7 @@ namespace ObjectTran
             dlg.Filter = "assembly files (*.dll;*.exe)|*.dll;*.exe";
             dlg.Multiselect = true;
             dlg.Title = "Load Assemblies";
-            if ((bool) dlg.ShowDialog())
+            if ((bool)dlg.ShowDialog())
             {
                 assemblyFile = "";
                 foreach (var fn in dlg.FileNames)
