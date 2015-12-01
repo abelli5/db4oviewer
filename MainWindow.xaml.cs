@@ -210,6 +210,14 @@ namespace ObjectTran
 
                 var clist = db1.Ext().StoredClasses();
                 worker.ReportProgress(0, string.Format("{0} classes are listed.", clist.Length));
+
+                Assembly assembly = Assembly.LoadFile(assemblyFile);
+                worker.ReportProgress(0, string.Format("Assembly [{0}] is loaded.", assemblyFile));
+                foreach(Type t in assembly.GetTypes())
+                {
+                    worker.ReportProgress(0, string.Format("++Type [{0}] is loaded.", t));
+                }
+
                 foreach (IStoredClass c in clist)
                 {
                     // try to list objects.
@@ -219,9 +227,7 @@ namespace ObjectTran
                     foreach(var id in ids)
                     {
                         var o = db1.Ext().GetByID(id);
-                        var o2 = PopulateFrom(id, o, c);
-                        worker.ReportProgress(0, string.Format("++{0} - {1} of class [{2}] is converted to {3}.",
-                            id, o, c.GetName(), o2));
+                        var o2 = PopulateFrom(id, o, c, assembly);
                         if (o2 != null)
                         {
                             db2.Store(o2);
@@ -236,19 +242,56 @@ namespace ObjectTran
             worker.RunWorkerAsync();
         }
 
-        private object PopulateFrom(long id, object o, IStoredClass c)
+        private object PopulateFrom(long id, object o, IStoredClass c, Assembly assembly)
         {
-            Assembly assembly = Assembly.LoadFrom(assemblyFile);
             try
             {
-                var o2 = assembly.CreateInstance(c.GetName());
+                string cname = c.GetName();
+                int pos = cname.IndexOf(',');
+                if (pos > 0)
+                {
+                    cname = cname.Substring(0, pos);
+                }
+                var o2 = assembly.CreateInstance(cname);
+                worker.ReportProgress(0, string.Format("++{0} - {1} of class [{2}] is converted to {3}.",
+                    id, o, cname, o2));
+
+                if (o2 != null)
+                {
+                    DeepCopy(id, o, c, o2, assembly);
+                }
+
                 return o2;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 worker.ReportProgress(0, string.Format("Fail to convert from {0} - {1} of class [{2}] caused by {3}",
                     id, o, c.GetName(), ex.Message));
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Deep copy from db4o object to o2.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="o"></param>
+        /// <param name="c"></param>
+        /// <param name="o2"></param>
+        /// <param name="assembly"></param>
+        private void DeepCopy(long id, object o, IStoredClass c, object o2, Assembly assembly)
+        {
+            foreach(IStoredField f in c.GetStoredFields())
+            {
+                if (f.GetStoredType().IsImmutable())
+                {
+                    var v = f.Get(o);
+                    var f2 = o2.GetType().GetField(f.GetName());
+                    f2.SetValue(o2, v);
+                }
+                else
+                {
+                }
             }
         }
 
