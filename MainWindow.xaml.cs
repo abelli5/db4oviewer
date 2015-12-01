@@ -39,6 +39,11 @@ namespace ObjectTran
             dlg.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory;
             if ((bool) dlg.ShowDialog())
             {
+                if (db != null)
+                {
+                    db.Close();
+                }
+
                 originFile = dlg.FileName;
                 tbFilePath.Text = originFile;
                 db = Db4oFactory.OpenFile(originFile);
@@ -265,7 +270,7 @@ namespace ObjectTran
             }
             catch (Exception ex)
             {
-                worker.ReportProgress(0, string.Format("Fail to convert from {0} - {1} of class [{2}] caused by {3}",
+                worker.ReportProgress(0, string.Format("FAIL to convert from {0} - {1} of class [{2}] caused by {3}",
                     id, o, c.GetName(), ex.Message));
                 return null;
             }
