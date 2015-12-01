@@ -19,6 +19,8 @@ namespace ObjectTran
         private ObservableCollection<Object> objList = new ObservableCollection<object>();
 
         private IObjectContainer db;
+        private string originFile = null;
+        private string assemblyFile = null;
 
         public MainWindow()
         {
@@ -34,8 +36,9 @@ namespace ObjectTran
             dlg.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory;
             if ((bool) dlg.ShowDialog())
             {
-                tbFilePath.Text = dlg.FileName;
-                db = Db4oFactory.OpenFile(tbFilePath.Text);
+                originFile = dlg.FileName;
+                tbFilePath.Text = originFile;
+                db = Db4oFactory.OpenFile(originFile);
                 var ext = db.Ext();
 
                 PopulateCombos(db);
@@ -172,13 +175,26 @@ namespace ObjectTran
         #region convertion function
         private void btnConvert_Click(object sender, RoutedEventArgs e)
         {
-            string fname = "data\\db4o\\db-" + DateTime.Now.Ticks + ".yap";
-            string f1 = "data\\db4o\\mis222.yap";
-            ConvertToNew(f1, fname);
-            Msg(string.Format("Converted from {0} to {1} successfully.\n", f1, fname));
+            if (originFile == null || assemblyFile == null)
+            {
+                MessageBox.Show("Both original db4o database file and assembly files should be set!");
+                return;
+            }
+
+            SaveFileDialog dlg = new SaveFileDialog();
+            dlg.DefaultExt = ".yap";
+            dlg.InitialDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            dlg.Filter = "db4o files (*.yap)|*.yap";
+            dlg.FileName = "db4o-" + DateTime.Now.Ticks + ".yap";
+            if ((bool) dlg.ShowDialog())
+            {
+                tbNewFilePath.Text = dlg.FileName;
+                //ConvertToNew(db, tbNewFilePath.Text);
+                Msg(string.Format("Started to convert from {0} to {1}...\n", db, tbNewFilePath.Text));
+            }
         }
 
-        private void ConvertToNew(string f1, string f2)
+        private void ConvertToNew(IObjectContainer db1, string f2)
         {
             BackgroundWorker worker = new BackgroundWorker();
             worker.WorkerReportsProgress = true;
@@ -187,7 +203,6 @@ namespace ObjectTran
 
             worker.DoWork += (sender, e) =>
             {
-                IObjectContainer db1 = Db4oFactory.OpenFile(f1);
                 IObjectContainer db2 = Db4oFactory.OpenFile(f2);
 
                 var clist = db1.Ext().StoredClasses();
@@ -227,5 +242,23 @@ namespace ObjectTran
         }
 
         #endregion
+
+        private void btnLoadAssembly_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog dlg = new OpenFileDialog();
+            dlg.DefaultExt = ".dll";
+            dlg.Filter = "assembly files (*.dll;*.exe)|*.dll;*.exe";
+            dlg.Multiselect = true;
+            dlg.Title = "Load Assemblies";
+            if ((bool) dlg.ShowDialog())
+            {
+                assemblyFile = "";
+                foreach (var fn in dlg.FileNames)
+                {
+                    assemblyFile += fn + ";";
+                }
+                tbAssemblyFilePath.Text = assemblyFile;
+            }
+        }
     }
 }

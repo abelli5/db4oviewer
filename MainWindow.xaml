@@ -17,21 +17,21 @@
             <RowDefinition Height="20"/>
         </Grid.RowDefinitions>
         <Button x:Name="btnOpenDb4o" Content="Open Db4o" HorizontalAlignment="Left" Margin="10,9,0,0" VerticalAlignment="Top" Width="146" Click="btnOpenDb4o_Click" Height="19"/>
-        <TextBox x:Name="tbMsg" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Visible" Margin="0,0,0,0" ScrollViewer.CanContentScroll="True" Grid.Row="1" Grid.ColumnSpan="2"/>
+        <TextBox x:Name="tbFilePath" Margin="12,10,0,0" TextWrapping="Wrap" Text="db4o file path (*.yap)" VerticalAlignment="Top" Height="16" IsReadOnly="True" Grid.Column="1"/>
+        <Button x:Name="btnLoadAssembly" Content="Load Assembly" HorizontalAlignment="Left" Margin="10,33,0,0" VerticalAlignment="Top" Width="146" Click="btnLoadAssembly_Click" Height="19"/>
+        <TextBox x:Name="tbAssemblyFilePath" Margin="12,34,0,0" TextWrapping="Wrap" Text="assembly file path (*.dll)" VerticalAlignment="Top" Height="16" IsReadOnly="True" Grid.Column="1"/>
+        <Button x:Name="btnConvert" Content="Convert to New" HorizontalAlignment="Left" Margin="10,57,0,0" VerticalAlignment="Top" Width="146" Click="btnConvert_Click" Height="19"/>
+        <TextBox x:Name="tbNewFilePath" Margin="12,58,0,0" TextWrapping="Wrap" Text="db4o file path (*.yap)" VerticalAlignment="Top" Height="16" IsReadOnly="True" Grid.Column="1"/>
         <ComboBox x:Name="comboType" HorizontalAlignment="Left" Margin="10,84,0,0" VerticalAlignment="Top" Width="498" Height="22" SelectionChanged="comboType_SelectionChanged" Grid.ColumnSpan="2"/>
         <ComboBox x:Name="comboIds" HorizontalAlignment="Left" Margin="10,111,0,0" VerticalAlignment="Top" Width="498" Height="22" SelectionChanged="comboIds_SelectionChanged" Grid.ColumnSpan="2"/>
         <Button x:Name="btnClear" Content="C" HorizontalAlignment="Left" Margin="0,138,0,0" VerticalAlignment="Top" Width="23" Click="btnClear_Click" Height="19"/>
         <Button x:Name="btnCut" Content="X" HorizontalAlignment="Left" Margin="28,138,0,0" VerticalAlignment="Top" Width="23" Click="btnCut_Click" Height="19"/>
-        <Button x:Name="btnConvert" Content="Convert to New" HorizontalAlignment="Left" Margin="10,33,0,0" VerticalAlignment="Top" Width="146" Click="btnConvert_Click" Height="19"/>
-        <TextBox x:Name="tbFilePath" Margin="12,10,0,0" TextWrapping="Wrap" Text="db4o file path (*.yap)" VerticalAlignment="Top" Height="16" IsReadOnly="True" Grid.Column="1"/>
         <RadioButton x:Name="rbOutputFormat" Content="JSON" HorizontalAlignment="Left" Margin="129,140,0,0" VerticalAlignment="Top" Height="15" Width="47" Grid.ColumnSpan="2"/>
         <RadioButton x:Name="rbOutputFull" Content="Full" HorizontalAlignment="Left" Margin="75,140,0,0" VerticalAlignment="Top" IsChecked="True" Height="15" Width="38"/>
+        <TextBox x:Name="tbMsg" VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Visible" Margin="0,0,0,0" ScrollViewer.CanContentScroll="True" Grid.Row="1" Grid.ColumnSpan="2"/>
         <StatusBar Margin="0,0,0.4,0" Grid.Row="2" HorizontalAlignment="Stretch" Grid.ColumnSpan="2">
             <TextBlock x:Name="tbStatus" TextWrapping="Wrap" Text="Author: Abel Li &lt;abelli5@hotmail.com&gt;" Width="508" TextAlignment="Right" HorizontalAlignment="Stretch"/>
         </StatusBar>
-        <TextBox x:Name="tbNewFilePath" Margin="12,34,0,0" TextWrapping="Wrap" Text="db4o file path (*.yap)" VerticalAlignment="Top" Height="16" IsReadOnly="True" Grid.Column="1"/>
-        <TextBox x:Name="tbAssemblyFilePath" Margin="12,58,0,0" TextWrapping="Wrap" Text="assembly file path (*.dll)" VerticalAlignment="Top" Height="16" IsReadOnly="True" Grid.Column="1"/>
-        <Button x:Name="btnLoadAssembly" Content="Load Assembly" HorizontalAlignment="Left" Margin="10,57,0,0" VerticalAlignment="Top" Width="146" Click="btnConvert_Click" Height="19"/>
 
     </Grid>
 </Window>
