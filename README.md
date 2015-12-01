@@ -2,6 +2,7 @@
 This project *db4o viewer* provides **db4o** database file view without model classes assembly. It bases on **Db4objects** library.
 
 This project tries to fix the bug:
+
     [InvalidOperationException: Unsupported class hierarchy change. Class System.Reflection.TypeInfo, mscorlib was added to hierarchy of System.RuntimeType, mscorlib]
        Db4objects.Db4o.Internal.Metadata.HierarchyAnalyzer.ThrowUnsupportedAdd(IReflectClass runtimeAncestor) +106
        Db4objects.Db4o.Internal.Metadata.HierarchyAnalyzer.Analyze() +208
