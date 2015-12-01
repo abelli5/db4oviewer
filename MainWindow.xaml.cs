@@ -49,7 +49,7 @@ namespace ObjectTran
             var clzs = db.Ext().StoredClasses();
             foreach (var c in clzs)
             {
-                if (c.GetName().StartsWith("Unionless"))
+                //if (c.GetName().StartsWith("Unionless"))
                 {
                     comboType.Items.Add(c.GetName() + " - " + c.GetIDs().Length);
                     clzList.Add(c);
